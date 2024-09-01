@@ -8,31 +8,57 @@ const gravity = 0.35
 
 class Player {
     constructor() {
-        this.position = {
-            x: 100,
-            y: 100
-        }
+        this.speed = 4,
+            this.position = {
+                x: 100,
+                y: 100
+            }
         this.velocity = {
             x: 0,
             y: 0
         },
-            this.width = 30
-        this.height = 30
+            this.width = 66,
+            this.height = 150,
+            this.image = createImage('./images/spriteStandRight.png', 10620, 400),
+            this.frames = 0,
+            this.sprites = {
+                stand: {
+                    cropWidth: 177,
+                    width: 66,
+                    right: createImage('./images/spriteStandRight.png', 10620, 400),
+                    left: createImage('./images/spriteStandLeft.png', 10620, 400)
+                },
+                run: {
+                    cropWidth: 341,
+                    width: 127.875,
+                    right: createImage('./images/spriteRunRight.png', 10230, 400),
+                    left: createImage('./images/spriteRunLeft.png', 10230, 400)
+                }
+            },
+            this.currentSprite = this.sprites.stand.right
+            this.currentCropWidth = 177
     }
 
     draw() {
-        c.fillStyle = 'red'
-        c.fillRect(this.position.x, this.position.y, this.width, this.height)
+        c.drawImage(this.currentSprite,
+            this.currentCropWidth * this.frames, 0, this.currentCropWidth, 400,
+            this.position.x, this.position.y,
+            this.width, this.height)
     }
 
     update() {
+        this.frames += 1
+        if (this.frames > 59 && (this.currentSprite === this.sprites.stand.right || this.currentSprite === this.sprites.stand.left)) {
+            this.frames = 0
+        } else if (this.frames > 29 && (this.currentSprite === this.sprites.run.right || this.currentSprite === this.sprites.run.left))
+             {
+            this.frames = 0
+        }
         this.draw()
         this.position.x += this.velocity.x
         this.position.y += this.velocity.y
         if (this.position.y + this.height + this.velocity.y <= canvas.height) {
             this.velocity.y += gravity
-        } else {
-            this.velocity.y = 0
         }
     }
 }
@@ -44,10 +70,8 @@ class Platform {
             y: y
         },
             this.image = image,
-            console.log(image.width)
-        this.width = image.width,
-            console.log(image.height)
-        this.height = image.height
+            this.width = image.width,
+            this.height = image.height
     }
 
     draw() {
@@ -62,10 +86,8 @@ class GenericObject {
             y: y
         },
             this.image = image,
-            console.log(image.width)
-        this.width = image.width,
-            console.log(image.height)
-        this.height = image.height
+            this.width = image.width,
+            this.height = image.height
     }
 
     draw() {
@@ -80,22 +102,13 @@ function createImage(imageSrc, w, h) {
     image.height = h
     return image
 }
-const platformImage = createImage('./images/platform.png', 580, 125)
-const player = new Player()
-const platforms = [
-    new Platform({
-        x: -1, y: 470, image: platformImage
-    }),
-    new Platform({
-        x: platformImage.width - 3, y: 470, image: platformImage
-    })
-]
+let platformImage = createImage('./images/platform.png', 580, 125)
+let platformSmallTallImage = createImage('./images/platformSmallTall.png', 291, 227)
+let player = new Player()
+let platforms = []
+let genericObjects = []
 
-const genericObjects = [new GenericObject({
-    x: 0,
-    y: 0,
-    image: createImage('./images/background.png', 11643, 732)
-})]
+let lastKey
 
 const keys = {
     right: {
@@ -107,6 +120,48 @@ const keys = {
 }
 
 let scrollOffset = 0
+
+function init() {
+    platformImage = createImage('./images/platform.png', 580, 125)
+    platformSmallTallImage = createImage('./images/platformSmallTall.png', 291, 227)
+    player = new Player()
+    platforms = [
+        new Platform({
+            x: platformImage.width * 4 + 300 - 2 + platformImage.width - platformSmallTallImage.width, y: 270, image: platformSmallTallImage
+        }),
+        new Platform({
+            x: -1, y: 470, image: platformImage
+        }),
+        new Platform({
+            x: platformImage.width - 3, y: 470, image: platformImage
+        }),
+        new Platform({
+            x: platformImage.width * 2 + 100, y: 470, image: platformImage
+        }),
+        new Platform({
+            x: platformImage.width * 3 + 300, y: 470, image: platformImage
+        }),
+        new Platform({
+            x: platformImage.width * 4 + 300 - 2, y: 470, image: platformImage
+        }),
+        new Platform({
+            x: platformImage.width * 5 + 800 - 2, y: 470, image: platformImage
+        })
+    ]
+
+    genericObjects = [
+        new GenericObject({
+            x: -1,
+            y: -1,
+            image: createImage('./images/background.png', 11643, 732)
+        }),
+        new GenericObject({
+            x: -1,
+            y: -1,
+            image: createImage('./images/hills.png', 7545, 592)
+        })
+    ]
+}
 
 function animate() {
     requestAnimationFrame(animate)
@@ -121,21 +176,28 @@ function animate() {
     player.update()
 
     if (keys.right.pressed && player.position.x < 400) {
-        player.velocity.x = 4
-    } else if (keys.left.pressed && player.position.x > 100) {
-        player.velocity.x = -4
+        player.velocity.x = player.speed
+    } else if ((keys.left.pressed && player.position.x > 100) ||
+        (keys.left.pressed && scrollOffset === 0 && player.position.x > 0)) {
+        player.velocity.x = -player.speed
     } else {
         player.velocity.x = 0
 
         if (keys.right.pressed) {
-            scrollOffset += 4
+            scrollOffset += player.speed
             platforms.forEach((platform) => {
-                platform.position.x -= 4
+                platform.position.x -= player.speed
             })
-        } else if (keys.left.pressed) {
-            scrollOffset -= 4
+            genericObjects.forEach(genericObject => {
+                genericObject.position.x -= player.speed / 2
+            })
+        } else if (keys.left.pressed && scrollOffset > 0) {
+            scrollOffset -= player.speed
             platforms.forEach((platform) => {
-                platform.position.x += 4
+                platform.position.x += player.speed
+            })
+            genericObjects.forEach(genericObject => {
+                genericObject.position.x += player.speed / 2
             })
         }
     }
@@ -149,11 +211,42 @@ function animate() {
         }
     })
 
-    if (scrollOffset > 2000) {
+    //sprite switching
+    if (keys.right.pressed && lastKey === 'right' && player.currentSprite != player.sprites.run.right) {
+        player.frames = 1
+        player.currentSprite = player.sprites.run.right
+        player.currentCropWidth = player.sprites.run.cropWidth
+        player.width = player.sprites.run.width
+    } else if (keys.left.pressed && lastKey === 'left' && player.currentSprite != player.sprites.run.left) {
+        player.frames = 1
+        player.currentSprite = player.sprites.run.left
+        player.currentCropWidth = player.sprites.run.cropWidth
+        player.width = player.sprites.run.width
+    } else if (!keys.left.pressed && lastKey === 'left' && player.currentSprite != player.sprites.stand.left) {
+        player.frames = 1
+        player.currentSprite = player.sprites.stand.left
+        player.currentCropWidth = player.sprites.stand.cropWidth
+        player.width = player.sprites.stand.width
+    } else if (!keys.right.pressed && lastKey === 'right' && player.currentSprite != player.sprites.stand.right) {
+        player.frames = 1
+        player.currentSprite = player.sprites.stand.right
+        player.currentCropWidth = player.sprites.stand.cropWidth
+        player.width = player.sprites.stand.width
+    } 
+
+    //win condition
+    if (scrollOffset > platformImage.width * 5 + 800 - 2) {
         console.log('you win!')
+    }
+
+    //lose condition
+    if (player.position.y > canvas.height) {
+        console.log('you lose!')
+        init()
     }
 }
 
+init()
 animate()
 
 
@@ -161,18 +254,16 @@ animate()
 window.addEventListener('keydown', ({ key }) => {
     switch (key) {
         case "a":
-            console.log('left')
             keys.left.pressed = true
+            lastKey = 'left'
             break
         case "s":
-            console.log('down')
             break
         case "d":
-            console.log('right')
             keys.right.pressed = true
+            lastKey = 'right'
             break
         case "w":
-            console.log('up')
             player.velocity.y -= 15
             break
     }
@@ -180,18 +271,14 @@ window.addEventListener('keydown', ({ key }) => {
 window.addEventListener('keyup', ({ key }) => {
     switch (key) {
         case "a":
-            console.log('left')
             keys.left.pressed = false
             break
         case "s":
-            console.log('down')
             break
         case "d":
-            console.log('right')
             keys.right.pressed = false
             break
         case "w":
-            console.log('up')
             break
     }
 }) 
