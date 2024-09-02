@@ -4,54 +4,51 @@ const c = canvas.getContext('2d')
 canvas.width = 1024
 canvas.height = 576
 
-const gravity = 0.35
+const gravity = 2
+
+const framesPerSpriteFrame = 5
+let totalFrames = 0
 
 class Player {
     constructor() {
-        this.speed = 4,
+        this.speed = 15,
             this.position = {
                 x: 100,
                 y: 100
-            }
+            },
         this.velocity = {
             x: 0,
             y: 0
         },
-            this.width = 66,
-            this.height = 150,
-            this.image = createImage('./images/spriteStandRight.png', 10620, 400),
-            this.frames = 0,
-            this.sprites = {
-                stand: {
-                    cropWidth: 177,
-                    width: 66,
-                    right: createImage('./images/spriteStandRight.png', 10620, 400),
-                    left: createImage('./images/spriteStandLeft.png', 10620, 400)
-                },
-                run: {
-                    cropWidth: 341,
-                    width: 127.875,
-                    right: createImage('./images/spriteRunRight.png', 10230, 400),
-                    left: createImage('./images/spriteRunLeft.png', 10230, 400)
-                }
+        this.width = 48,
+        this.height = 48,
+        this.frames = 0,
+        this.cropWidth = 48,
+        this.sprites = {
+            stand: {
+                right: createImage('./images/3 Cyborg/Cyborg_idle.png', 192, 48),
+                left: createImage('./images/3 Cyborg/Cyborg_idle_left.png', 192, 48)
             },
-            this.currentSprite = this.sprites.stand.right
-            this.currentCropWidth = 177
+            run: {
+                right: createImage('./images/3 Cyborg/Cyborg_run.png', 288, 48),
+                left: createImage('./images/3 Cyborg/Cyborg_run_left.png', 288, 48)
+            }
+        },
+        this.currentSprite = this.sprites.stand.left
     }
 
     draw() {
         c.drawImage(this.currentSprite,
-            this.currentCropWidth * this.frames, 0, this.currentCropWidth, 400,
+            this.cropWidth * this.frames, 0, this.cropWidth, 48,
             this.position.x, this.position.y,
             this.width, this.height)
     }
 
     update() {
-        this.frames += 1
-        if (this.frames > 59 && (this.currentSprite === this.sprites.stand.right || this.currentSprite === this.sprites.stand.left)) {
+        this.frames += determineSpriteFrames()
+        if (this.frames > 3 && (this.currentSprite === this.sprites.stand.right || this.currentSprite === this.sprites.stand.left)) {
             this.frames = 0
-        } else if (this.frames > 29 && (this.currentSprite === this.sprites.run.right || this.currentSprite === this.sprites.run.left))
-             {
+        } else if (this.frames > 5 && (this.currentSprite === this.sprites.run.right || this.currentSprite === this.sprites.run.left)) {
             this.frames = 0
         }
         this.draw()
@@ -95,6 +92,11 @@ class GenericObject {
     }
 }
 
+function determineSpriteFrames() {
+    const zeroOrOne = 0
+    return (totalFrames % framesPerSpriteFrame == 0)
+}
+
 function createImage(imageSrc, w, h) {
     const image = new Image()
     image.src = imageSrc
@@ -108,7 +110,7 @@ let player = new Player()
 let platforms = []
 let genericObjects = []
 
-let lastKey
+let lastKey = 'right'
 
 const keys = {
     right: {
@@ -118,6 +120,8 @@ const keys = {
         pressed: false
     }
 }
+
+const fps = 60 ;
 
 let scrollOffset = 0
 
@@ -164,7 +168,11 @@ function init() {
 }
 
 function animate() {
-    requestAnimationFrame(animate)
+    //requestAnimationFrame(animate)
+    setTimeout(() => {
+        requestAnimationFrame(animate);
+    }, 1000 / fps)
+    totalFrames += 1
     c.fillStyle = 'white'
     c.fillRect(0, 0, canvas.width, canvas.height)
     genericObjects.forEach(genericObject => {
@@ -204,7 +212,7 @@ function animate() {
 
     platforms.forEach((platform) => {
         if (player.position.y + player.height <= platform.position.y &&
-            player.position.y + player.height + player.velocity.y >= platform.position.y &&
+            player.position.y + player.height + player.velocity.y >= platform.position.y + 2  &&
             player.position.x + player.width >= platform.position.x &&
             player.position.x <= platform.position.x + platform.width) {
             player.velocity.y = 0
@@ -213,25 +221,17 @@ function animate() {
 
     //sprite switching
     if (keys.right.pressed && lastKey === 'right' && player.currentSprite != player.sprites.run.right) {
-        player.frames = 1
+        player.frames = 0
         player.currentSprite = player.sprites.run.right
-        player.currentCropWidth = player.sprites.run.cropWidth
-        player.width = player.sprites.run.width
     } else if (keys.left.pressed && lastKey === 'left' && player.currentSprite != player.sprites.run.left) {
-        player.frames = 1
+        player.frames = 0
         player.currentSprite = player.sprites.run.left
-        player.currentCropWidth = player.sprites.run.cropWidth
-        player.width = player.sprites.run.width
-    } else if (!keys.left.pressed && lastKey === 'left' && player.currentSprite != player.sprites.stand.left) {
-        player.frames = 1
-        player.currentSprite = player.sprites.stand.left
-        player.currentCropWidth = player.sprites.stand.cropWidth
-        player.width = player.sprites.stand.width
     } else if (!keys.right.pressed && lastKey === 'right' && player.currentSprite != player.sprites.stand.right) {
-        player.frames = 1
+        player.frames = 0
         player.currentSprite = player.sprites.stand.right
-        player.currentCropWidth = player.sprites.stand.cropWidth
-        player.width = player.sprites.stand.width
+    } else if (!keys.left.pressed && lastKey === 'left' && player.currentSprite != player.sprites.stand.left) {
+        player.frames = 0
+        player.currentSprite = player.sprites.stand.left
     } 
 
     //win condition
@@ -264,7 +264,7 @@ window.addEventListener('keydown', ({ key }) => {
             lastKey = 'right'
             break
         case "w":
-            player.velocity.y -= 15
+            player.velocity.y -= 28
             break
     }
 })
