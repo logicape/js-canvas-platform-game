@@ -6,6 +6,12 @@ canvas.height = 576
 
 const gravity = 2
 
+const globals = {
+    screenScroll: {
+        left: 250,
+        right: 450
+    }
+}
 const framesPerSpriteFrame = 5
 let totalFrames = 0
 
@@ -13,42 +19,53 @@ class Player {
     constructor() {
         this.speed = 15,
             this.position = {
-                x: 100,
+                x: globals.screenScroll.left,
                 y: 100
             },
-        this.velocity = {
-            x: 0,
-            y: 0
-        },
-        this.width = 48,
-        this.height = 48,
-        this.frames = 0,
-        this.cropWidth = 48,
-        this.sprites = {
-            stand: {
-                right: createImage('./images/3 Cyborg/Cyborg_idle.png', 192, 48),
-                left: createImage('./images/3 Cyborg/Cyborg_idle_left.png', 192, 48)
+            this.velocity = {
+                x: 0,
+                y: 0
             },
-            run: {
-                right: createImage('./images/3 Cyborg/Cyborg_run.png', 288, 48),
-                left: createImage('./images/3 Cyborg/Cyborg_run_left.png', 288, 48)
-            }
-        },
-        this.currentSprite = this.sprites.stand.left
+            this.width = 48,
+            this.height = 48,
+            this.frames = 0,
+            this.cropWidth = 48,
+            this.sprites = {
+                stand: {
+                    frames: 4,
+                    right: createImage('./images/3 Cyborg/Cyborg_idle.png', 192, 48),
+                    left: createImage('./images/3 Cyborg/Cyborg_idle_left.png', 192, 48)
+                },
+                run: {
+                    frames: 6,
+                    right: createImage('./images/3 Cyborg/Cyborg_run.png', 288, 48),
+                    left: createImage('./images/3 Cyborg/Cyborg_run_left.png', 288, 48)
+                },
+                jump: {
+                    frames: 1,
+                    right: createImage('./images/3 Cyborg/Cyborg_jump_oneframe_right.png', 48, 48),
+                    left: createImage('./images/3 Cyborg/Cyborg_jump_oneframe_left.png', 48, 48)
+                },
+                fall: {
+                    frames: 1,
+                    right: createImage('./images/3 Cyborg/Cyborg_fall_oneframe_right.png', 48, 48),
+                    left: createImage('./images/3 Cyborg/Cyborg_fall_oneframe_left.png', 48, 48)
+                }
+            },
+            this.currentSprite = this.sprites.stand.left
+        this.currentMaxFrames = this.sprites.stand.frames
     }
 
     draw() {
         c.drawImage(this.currentSprite,
             this.cropWidth * this.frames, 0, this.cropWidth, 48,
-            this.position.x, this.position.y,
-            this.width, this.height)
+            this.position.x, this.position.y - 36,
+            this.width * 1.8, this.height * 1.8)
     }
 
     update() {
         this.frames += determineSpriteFrames()
-        if (this.frames > 3 && (this.currentSprite === this.sprites.stand.right || this.currentSprite === this.sprites.stand.left)) {
-            this.frames = 0
-        } else if (this.frames > 5 && (this.currentSprite === this.sprites.run.right || this.currentSprite === this.sprites.run.left)) {
+        if (this.frames > this.currentMaxFrames - 1) {
             this.frames = 0
         }
         this.draw()
@@ -93,8 +110,7 @@ class GenericObject {
 }
 
 function determineSpriteFrames() {
-    const zeroOrOne = 0
-    return (totalFrames % framesPerSpriteFrame == 0)
+    return (totalFrames % framesPerSpriteFrame === 0)
 }
 
 function createImage(imageSrc, w, h) {
@@ -118,10 +134,13 @@ const keys = {
     },
     left: {
         pressed: false
+    },
+    up: {
+        pressed: false
     }
 }
 
-const fps = 60 ;
+const fps = 60;
 
 let scrollOffset = 0
 
@@ -150,6 +169,21 @@ function init() {
         }),
         new Platform({
             x: platformImage.width * 5 + 800 - 2, y: 470, image: platformImage
+        }),
+        new Platform({
+            x: platformImage.width * 6 + 800 - 4, y: 470, image: platformImage
+        }),
+        new Platform({
+            x: platformImage.width * 7 + 800 - 6, y: 470, image: platformImage
+        }),
+        new Platform({
+            x: platformImage.width * 8 + 800 - 8, y: 470, image: platformImage
+        }),
+        new Platform({
+            x: platformImage.width * 9 + 800 - 10, y: 470, image: platformImage
+        }),
+        new Platform({
+            x: platformImage.width * 10 + 800 - 12, y: 470, image: platformImage
         })
     ]
 
@@ -183,10 +217,9 @@ function animate() {
     })
     player.update()
 
-    if (keys.right.pressed && player.position.x < 400) {
+    if (keys.right.pressed && player.position.x < globals.screenScroll.right) {
         player.velocity.x = player.speed
-    } else if ((keys.left.pressed && player.position.x > 100) ||
-        (keys.left.pressed && scrollOffset === 0 && player.position.x > 0)) {
+    } else if (keys.left.pressed && player.position.x > globals.screenScroll.left) {
         player.velocity.x = -player.speed
     } else {
         player.velocity.x = 0
@@ -212,30 +245,76 @@ function animate() {
 
     platforms.forEach((platform) => {
         if (player.position.y + player.height <= platform.position.y &&
-            player.position.y + player.height + player.velocity.y >= platform.position.y + 2  &&
+            player.position.y + player.height + player.velocity.y >= platform.position.y + 2 &&
             player.position.x + player.width >= platform.position.x &&
             player.position.x <= platform.position.x + platform.width) {
             player.velocity.y = 0
         }
     })
 
-    //sprite switching
-    if (keys.right.pressed && lastKey === 'right' && player.currentSprite != player.sprites.run.right) {
-        player.frames = 0
-        player.currentSprite = player.sprites.run.right
-    } else if (keys.left.pressed && lastKey === 'left' && player.currentSprite != player.sprites.run.left) {
-        player.frames = 0
-        player.currentSprite = player.sprites.run.left
-    } else if (!keys.right.pressed && lastKey === 'right' && player.currentSprite != player.sprites.stand.right) {
-        player.frames = 0
-        player.currentSprite = player.sprites.stand.right
-    } else if (!keys.left.pressed && lastKey === 'left' && player.currentSprite != player.sprites.stand.left) {
-        player.frames = 0
-        player.currentSprite = player.sprites.stand.left
-    } 
+    //Sprite Switching
+
+    //Player movement
+    // left right
+    if (keys.left.pressed) {
+        if (player.currentSprite != player.sprites.run.left) {
+            player.frames = 0
+            player.currentSprite = player.sprites.run.left
+            player.currentMaxFrames = player.sprites.run.frames
+        }
+    } else if (keys.right.pressed) {
+        if (player.currentSprite != player.sprites.run.right) {
+            player.frames = 0
+            player.currentSprite = player.sprites.run.right
+            player.currentMaxFrames = player.sprites.run.frames
+        }
+    } else {                                                        //not moving horizontally (stand)
+        if (player.currentSprite != player.sprites.stand.left && player.currentSprite != player.sprites.stand.right) {
+            player.frames = 0
+            player.currentMaxFrames = player.sprites.stand.frames
+            if (lastKey === 'left') {
+                player.currentSprite = player.sprites.stand.left
+            } else {
+                player.currentSprite = player.sprites.stand.right
+            }
+        }
+    }
+
+    // jumping falling
+    if (player.velocity.y !== 0) {
+        if (player.velocity.y < 0) {                            //player is rising (jump)
+            if (player.velocity.x < 0 || (player.velocity.x === 0 && player.position.x === globals.screenScroll.left)) {
+                if (player.currentSprite != player.sprites.jump.left) {
+                    player.frames = 0
+                    player.currentSprite = player.sprites.jump.left
+                    player.currentMaxFrames = player.sprites.jump.frames
+                }
+            } else if (player.velocity.x > 0 || (player.velocity.x === 0 && player.position.x === globals.screenScroll.right)) {
+                if (player.currentSprite != player.sprites.jump.right) {
+                    player.frames = 0
+                    player.currentSprite = player.sprites.jump.right
+                    player.currentMaxFrames = player.sprites.jump.frames
+                }
+            }
+        } else {                                                //player is falling (fall)
+            if (player.velocity.x < 0 || (player.velocity.x === 0 && player.position.x === globals.screenScroll.left)) {
+                if (player.currentSprite != player.sprites.fall.left) {
+                    player.frames = 0
+                    player.currentSprite = player.sprites.fall.left
+                    player.currentMaxFrames = player.sprites.fall.frames
+                }
+            } else if (player.velocity.x > 0 || (player.velocity.x === 0 && player.position.x === globals.screenScroll.right)) {
+                if (player.currentSprite != player.sprites.fall.right) {
+                    player.frames = 0
+                    player.currentSprite = player.sprites.fall.right
+                    player.currentMaxFrames = player.sprites.fall.frames
+                }
+            }
+        }
+    }
 
     //win condition
-    if (scrollOffset > platformImage.width * 5 + 800 - 2) {
+    if (scrollOffset > platformImage.width * 10 + 800 - 12) {
         console.log('you win!')
     }
 
@@ -264,6 +343,8 @@ window.addEventListener('keydown', ({ key }) => {
             lastKey = 'right'
             break
         case "w":
+            keys.up.pressed = true
+            lastKey = 'up'
             player.velocity.y -= 28
             break
     }
@@ -279,6 +360,7 @@ window.addEventListener('keyup', ({ key }) => {
             keys.right.pressed = false
             break
         case "w":
+            keys.up.pressed = false
             break
     }
 }) 
