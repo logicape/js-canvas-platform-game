@@ -71,6 +71,9 @@ class Player {
         this.draw()
         this.position.x += this.velocity.x
         this.position.y += this.velocity.y
+        if (player.position.x > globals.screenScroll.right) {
+            player.position.x = globals.screenScroll.right                   //don't let player go past right limit
+        }
         if (this.position.y + this.height + this.velocity.y <= canvas.height) {
             this.velocity.y += gravity
         }
@@ -140,7 +143,7 @@ const keys = {
     }
 }
 
-const fps = 60;
+const fps = 60
 
 let scrollOffset = 0
 
@@ -207,8 +210,8 @@ function animate() {
         requestAnimationFrame(animate);
     }, 1000 / fps)
     totalFrames += 1
-    c.fillStyle = 'white'
-    c.fillRect(0, 0, canvas.width, canvas.height)
+    //c.fillStyle = 'white'
+    //c.fillRect(0, 0, canvas.width, canvas.height)
     genericObjects.forEach(genericObject => {
         genericObject.draw()
     })
@@ -219,7 +222,7 @@ function animate() {
 
     if (keys.right.pressed && player.position.x < globals.screenScroll.right) {
         player.velocity.x = player.speed
-    } else if (keys.left.pressed && player.position.x > globals.screenScroll.left) {
+    } else if (keys.left.pressed && player.position.x >= globals.screenScroll.left) {
         player.velocity.x = -player.speed
     } else {
         player.velocity.x = 0
@@ -255,35 +258,10 @@ function animate() {
     //Sprite Switching
 
     //Player movement
-    // left right
-    if (keys.left.pressed) {
-        if (player.currentSprite != player.sprites.run.left) {
-            player.frames = 0
-            player.currentSprite = player.sprites.run.left
-            player.currentMaxFrames = player.sprites.run.frames
-        }
-    } else if (keys.right.pressed) {
-        if (player.currentSprite != player.sprites.run.right) {
-            player.frames = 0
-            player.currentSprite = player.sprites.run.right
-            player.currentMaxFrames = player.sprites.run.frames
-        }
-    } else {                                                        //not moving horizontally (stand)
-        if (player.currentSprite != player.sprites.stand.left && player.currentSprite != player.sprites.stand.right) {
-            player.frames = 0
-            player.currentMaxFrames = player.sprites.stand.frames
-            if (lastKey === 'left') {
-                player.currentSprite = player.sprites.stand.left
-            } else {
-                player.currentSprite = player.sprites.stand.right
-            }
-        }
-    }
-
-    // jumping falling
+    // jumping falling -- get ariel movement out of the way first
     if (player.velocity.y !== 0) {
-        if (player.velocity.y < 0) {                            //player is rising (jump)
-            if (player.velocity.x < 0 || (player.velocity.x === 0 && player.position.x === globals.screenScroll.left)) {
+        if (player.velocity.y < 0) {                          //player is rising (jump)
+            if (player.velocity.x < 0 || (player.velocity.x === 0 && player.position.x === globals.screenScroll.left - 10)) {
                 if (player.currentSprite != player.sprites.jump.left) {
                     player.frames = 0
                     player.currentSprite = player.sprites.jump.left
@@ -296,8 +274,8 @@ function animate() {
                     player.currentMaxFrames = player.sprites.jump.frames
                 }
             }
-        } else {                                                //player is falling (fall)
-            if (player.velocity.x < 0 || (player.velocity.x === 0 && player.position.x === globals.screenScroll.left)) {
+        } else {                                              //player is falling (fall)
+            if (player.velocity.x < 0 || (player.velocity.x === 0 && player.position.x === globals.screenScroll.left - 10)) {
                 if (player.currentSprite != player.sprites.fall.left) {
                     player.frames = 0
                     player.currentSprite = player.sprites.fall.left
@@ -311,7 +289,34 @@ function animate() {
                 }
             }
         }
+    } else {                                        //no vertical movement, work out running
+
+        // left right
+        if (keys.left.pressed) {
+            if (player.currentSprite != player.sprites.run.left) {
+                player.frames = 0
+                player.currentSprite = player.sprites.run.left
+                player.currentMaxFrames = player.sprites.run.frames
+            }
+        } else if (keys.right.pressed) {
+            if (player.currentSprite != player.sprites.run.right) {
+                player.frames = 0
+                player.currentSprite = player.sprites.run.right
+                player.currentMaxFrames = player.sprites.run.frames
+            }
+        } else {                                                        //not moving horizontally (stand)
+            if (player.currentSprite != player.sprites.stand.left && player.currentSprite != player.sprites.stand.right) {
+                player.frames = 0
+                player.currentMaxFrames = player.sprites.stand.frames
+                if (lastKey === 'left') {
+                    player.currentSprite = player.sprites.stand.left
+                } else {
+                    player.currentSprite = player.sprites.stand.right
+                }
+            }
+        }
     }
+
 
     //win condition
     if (scrollOffset > platformImage.width * 10 + 800 - 12) {
